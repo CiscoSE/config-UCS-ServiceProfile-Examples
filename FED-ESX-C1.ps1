@@ -15,7 +15,7 @@ or implied.
 ############################################################################################################
 # This is an example script. It is not intended to be run in your environment without modification.
 # This script exits by default to prevent damage to your existing environment. You should not run it
-# Unless you fully understand it and have modified it properly to work in your enviroment. 
+# unless you fully understand it and have modified it properly to work in your enviroment. 
 # Do not remove the "return" line from this script. Select your intended lines and run them individually or 
 # in small groups.
 ############################################################################################################
@@ -24,7 +24,7 @@ return
 
 ############################################################################################################
 # Note
-# Change below IP addressing before using this script.
+# Review all variables below before running script.
 ############################################################################################################
 $ucsMgmtIP="IP-of-UCS"
 $ucsNTP = "ntp-ip-address"
@@ -62,13 +62,12 @@ $iscsiVnicBName = "iSCSI-B"
 #The site name is used to seperate configurations in UCS. We are assuming one site per cluster.
 $SiteName = "ESX-C1-TEST" 
 
-#Create Site Name.
-add-UcsOrg -Name $SiteName
-
 #Connect to UCS to to configure.
-
 Import-Module Cisco.UCSManager
 connect-ucs $ucsMgmtIP
+
+#Create Site Name.
+add-UcsOrg -Name $SiteName
 
 ############################################################################################################
 # Critical Note
