@@ -166,7 +166,7 @@ Complete-UcsTransaction
 Start-UcsTransaction
 $mo = Get-UcsOrg -Name $SiteName  | Add-UcsVnicTemplate -Name $vicStorageAName -PeerRedundancyTemplName $VicStorageBName -RedundancyPairType primary -IdentPoolName "Storage-A" -Mtu 9000 -PolicyOwner "local" -QosPolicyName "" -StatsPolicyName "default" -SwitchId "A" -TemplType 'updating-template'
 $mo_1 = $mo | Add-UcsVnicInterface -ModifyPresent -DefaultNet "yes" -Name $StorageVLANName
-$mo_1 = $mo | Add-UcsVnicInterface -ModifyPresent -DefaultNet "no"  -Name $LegacyStorageVLANName
+#$mo_1 = $mo | Add-UcsVnicInterface -ModifyPresent -DefaultNet "no"  -Name $LegacyStorageVLANName
 Complete-UcsTransaction
 
 Start-UcsTransaction
@@ -218,19 +218,6 @@ Complete-UcsTransaction -force
 #Create Policy to set encryption on KVM connections
 Get-UcsOrg -Name $SiteName | Add-UcsComputeKvmMgmtPolicy -Descr "" -Name "Encrypted" -PolicyOwner "local" -VmediaEncryption "enable"
 
-$identityPoolA = "ACI-Storage-A"
-$identityPoolB = "ACI-Storage-B"
-
-# Create Identity Pools for iSCSI Boot
-Start-UcsTransaction
-$mo = Get-UcsOrg -Level root | Get-UcsOrg -Name $siteName -LimitScope | Add-UcsIpPool -AssignmentOrder "sequential" -Name $identityPoolA
-$mo_1 = $mo | Add-UcsIpPoolBlock -DefGw "172.16.43.1" -From "172.16.43.141" -To "172.16.43.150"
-Complete-UcsTransaction
-
-Start-UcsTransaction
-$mo = Get-UcsOrg -Level root | Get-UcsOrg -Name $siteName -LimitScope | Add-UcsIpPool -AssignmentOrder "sequential" -Name $identityPoolB
-$mo_1 = $mo | Add-UcsIpPoolBlock -DefGw "172.16.43.1" -From "172.16.43.241" -To "172.16.43.250"
-Complete-UcsTransaction
 
 ##########################################################################################################################################################################################
 #   Service Profile
@@ -247,37 +234,10 @@ $mo_6 = $mo | Add-UcsVnic -AdaptorProfileName "VMWare" -AdminVcon "1" -Name $vic
 $mo_7 = $mo | Add-UcsVnic -AdaptorProfileName "VMWare" -AdminVcon "1" -Name $VicStorageBName  -NwTemplName $VicStorageBName -Order "6" -SwitchId "B"
 $mo_8 = $mo | Add-UcsVnic -AdaptorProfileName "VMWare" -AdminVcon "1" -Name $vicVMAName       -NwTemplName $vicVMAName      -Order "7" -SwitchId "A"
 $mo_9 = $mo | Add-UcsVnic -AdaptorProfileName "VMWare" -AdminVcon "1" -Name $vicVMBName       -NwTemplName $VicVMBName      -Order "8" -SwitchId "B"
-# Create the iSCSI Adapters
-$mo_10 = $mo | Add-UcsVnicIScsiNode -ModifyPresent -InitiatorName "" -InitiatorPolicyName "" -IqnIdentPoolName "FED-ESX-C1"
-$mo_11 = $mo | Add-UcsVnicIScsi -Name $iscsiVnicAName -VnicName $vicStorageAName
-$mo_11_1 = $mo_11 | Add-UcsVnicVlan -ModifyPresent -Name "" -VlanName "ACI-Storage-2043"
-$mo_12 = $mo | Add-UcsVnicIScsi -Name $iscsiVnicBName -VnicName $VicStorageBName
-$mo_12_1 = $mo_12 | Add-UcsVnicVlan -ModifyPresent -Name "" -VlanName "ACI-Storage-2043"
-#Configure iSCSI Adapter A in the Template
-
-# Use this object for the 
-$mo_13 = $mo | Add-UcsVnicIScsiBootParams -ModifyPresent
-
-$mo_13_1 = $mo_13 | Add-UcsVnicIScsiBootVnic -ModifyPresent -Name $iscsiVnicAName
-$mo_13_1_1 = $mo_13_1 | Add-UcsVnicIScsiStaticTargetIf -IpAddress "172.16.43.11" -name "iqn.2010-06.com.purestorage:flasharray.12ffdf9f66d021ad" -Priority 1
-$mo_13_1_1_1 = $mo_13_1_1 | Add-UcsVnicLun -ModifyPresent -Bootable no -id 1
-$mo_13_2 = $mo_13_1 |Add-UcsVnicIPv4If -name ""
-$mo_13_2_1 = $mo_13_2 | Add-UcsManagedObject -ClassId VnicIPv4PooledIscsiAddr -PropertyMap @{IdentPoolName=$identityPoolA; }
-
-#Configure iSCSI Adapter B in the Template
-$mo_14 = $mo_13 | Add-UcsVnicIScsiBootVnic -ModifyPresent -Name $iscsiVnicBName
-$mo_14_1 = $mo_14 | Add-UcsVnicIScsiStaticTargetIf -IpAddress "172.16.43.12" -name "iqn.2010-06.com.purestorage:flasharray.12ffdf9f66d021ad" -Priority 1
-$mo_14_1_1 = $mo_14_1 | Add-UcsVnicLun -ModifyPresent -Bootable no -id 1
-$mo_14_2 = $mo_14 |Add-UcsVnicIPv4If -name ""
-$mo_14_2_1 = $mo_14_2 | Add-UcsManagedObject -ClassId VnicIPv4PooledIscsiAddr -PropertyMap @{IdentPoolName=$identityPoolB; }
 
 #Create Boot Definition
 
 $mo_15 = $mo | Add-UcsBootDefinition -ModifyPresent -AdvBootOrderApplicable "no" -BootMode uefi -Descr "" -EnforceVnicName "yes" -PolicyOwner "local" -RebootOnUpdate "no"
-$mo_15_1 = $mo_15 | Add-UcsLsbootIScsi -order 1
-$mo_15_1_1 = $mo_15_1 | Add-UcsLsbootIScsiImagePath -ISCSIVnicName $iscsiVnicAName -IpAddrType "none" -Type "primary" -VnicName ""
-$mo_15_1_1 = $mo_15_1 | Add-UcsLsbootIScsiImagePath -ISCSIVnicName $iscsiVnicBName -IpAddrType "none" -Type "secondary" -VnicName ""
-$mo_15_2 = $mo_15 | Add-UcsLsbootVirtualMedia -Access read-only -LunId 0 -order 2
 
 #$mo_11 = $mo | Add-UcsFabricVCon -ModifyPresent -Fabric "NONE" -Id "1" -InstType "manual" -Placement "physical" -Select "all" -Share "shared" -Transport "ethernet","fc"
 #$mo_12 = $mo | Add-UcsFabricVCon -ModifyPresent -Fabric "NONE" -Id "2" -InstType "manual" -Placement "physical" -Select "all" -Share "shared" -Transport "ethernet","fc"
