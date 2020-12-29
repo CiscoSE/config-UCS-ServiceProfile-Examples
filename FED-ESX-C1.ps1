@@ -21,10 +21,7 @@ or implied.
 ############################################################################################################
 return
 
-#Connect to UCS to to configure.
 
-Import-Module Cisco.UCSManager
-connect-ucs $ucsMgmtIP
 ############################################################################################################
 # Note
 # Change below IP addressing before using this script.
@@ -67,6 +64,11 @@ $SiteName = "ESX-C1-TEST"
 
 #Create Site Name.
 add-UcsOrg -Name $SiteName
+
+#Connect to UCS to to configure.
+
+Import-Module Cisco.UCSManager
+connect-ucs $ucsMgmtIP
 
 ############################################################################################################
 # Critical Note
