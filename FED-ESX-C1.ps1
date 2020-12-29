@@ -121,13 +121,13 @@ Complete-UcsTransaction
 #Create MAC Address Pools (VM A)
 Start-UcsTransaction
 $mo = Get-UcsOrg -Name $SiteName | Add-UcsMacPool -AssignmentOrder "sequential" -Descr "$($vmMacPoolName)-A" -Name "$($vmMacPoolName)-A" -PolicyOwner "local"
-$mo_1 = $mo | Add-UcsMacMemberBlock -From "00:25:B5:1A:03:31" -To "00:25:B5:1A:03:40"
+$mo_1 = $mo | Add-UcsMacMemberBlock -From "00:25:B5:1A:03:01" -To "00:25:B5:1A:03:40"
 Complete-UcsTransaction
 
 #Create MAC Address Pools (VM B)
 Start-UcsTransaction
 $mo = Get-UcsOrg -Name $SiteName | Add-UcsMacPool -AssignmentOrder "sequential" -Descr "$($vmMacPoolName)-B" -Name "$($vmMacPoolName)-B" -PolicyOwner "local"
-$mo_1 = $mo | Add-UcsMacMemberBlock -From "00:25:B5:1B:03:31" -To "00:25:B5:1B:03:40"
+$mo_1 = $mo | Add-UcsMacMemberBlock -From "00:25:B5:1B:03:01" -To "00:25:B5:1B:03:40"
 Complete-UcsTransaction
 
 
