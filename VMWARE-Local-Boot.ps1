@@ -27,12 +27,13 @@ return
 # Review all variables below before running script.
 ############################################################################################################
 $ucsMgmtIP="IP-of-UCS"
-$ucsNTP = "ntp-ip-address"
+$ucsNTP = "1.1.40.30"
 
 #These names are for VLANS.
 $ManagementVLANName = "ESXiMgmt-1000"
 $vMotionVLANName    = "vMotion-1001"
 $StorageVLANName    = "Storage-1002"
+$vMLANName          = "VMNetwork"
 #$LegacyStorageVLANName = "LegStorage-1003"
 
 ############# MAC Address Pool Variables #############
@@ -69,6 +70,54 @@ connect-ucs $ucsMgmtIP
 #Create Site Name.
 add-UcsOrg -Name $SiteName
 
+
+############################################################################################################
+# Basic Core Settings
+############################################################################################################
+
+#Turn off Call Home Reporting
+Get-UcsCallhomeAnonymousReporting | Set-UcsManagedObject -PropertyMap @{AdminState="off"; UserAcknowledged="yes"; } -force
+
+# Allow for Jumbo Frames on Best Effort 
+Start-UcsTransaction
+$mo = Get-UcsQosclassDefinition | Set-UcsQosclassDefinition -Descr "" -PolicyOwner "local" -Force
+$mo_1 = Get-UcsBestEffortQosClass | Set-UcsBestEffortQosClass -Mtu "9216" -MulticastOptimize "no" -Name "" -Weight "5" -force
+Complete-UcsTransaction
+
+#Set the time server and Time Zone
+Start-UcsTransaction
+$mo = Get-UcsSvcEp | Get-UcsTimezone | Set-UcsTimezone -AdminState "enabled" -Descr "" -PolicyOwner "local" -Port 0 -Timezone "America/Detroit (Eastern Time - Michigan - most locations)" -Force
+$mo_1 = Get-UcsSvcEp | Get-UcsTimezone | add-UcsNtpServer -Name $ucsNTP 
+Complete-UcsTransaction
+
+############################################################################################################
+# Settings to configure uplink intefaces in VPC configurations
+# WARNING - THESE DO REQUIRE MODIFICATION BEFORE RUNNING THEM AGAINST PRODUCTION ENVIRONMENTS
+############################################################################################################
+
+#Enable uplinks
+Add-UcsUplinkPort -FiLanCloud A -portid 31 -slot 1
+Add-UcsUplinkPort -FiLanCloud B -portId 31 -slot 1
+Add-UcsUplinkPort -FiLanCloud A -portid 32 -slot 1
+Add-UcsUplinkPort -FiLanCloud B -portId 32 -slot 1
+
+#Configure Port Channel
+$PortChannelA = Get-UcsFiLanCloud -Id A | Add-UcsUplinkPortChannel -Name NEXUS-LAN-A -PortId 10 -AdminState enabled
+$portChannelA | Add-UcsUplinkPortChannelMember -PortId 31 -SlotId 1
+$portChannelA | Add-UcsUplinkPortChannelMember -PortId 32 -SlotId 1
+$PortChannelB = Get-UcsFiLanCloud -Id B | Add-UcsUplinkPortChannel -Name NEXUS-LAN-B -PortId 11 -AdminState enabled
+$portChannelB | Add-UcsUplinkPortChannelMember -PortId 31 -SlotId 1
+$portChannelB | Add-UcsUplinkPortChannelMember -PortId 32 -SlotId 1
+
+#Create VLANS
+#You can change the numbers below, but the names must be changed at the top of the script.
+#These VLAN names are mapped to vNIC templates later is this script.
+Get-UcsLanCloud | Add-UcsVlan -CompressionType "included" -DefaultNet "no" -Id 50 -McastPolicyName "" -Name $ManagementVLANName -PolicyOwner "local" -PubNwName "" -Sharing "none"
+Get-UcsLanCloud | Add-UcsVlan -CompressionType "included" -DefaultNet "no" -Id 60 -McastPolicyName "" -Name $vMotionVLANName    -PolicyOwner "local" -PubNwName "" -Sharing "none"
+Get-UcsLanCloud | Add-UcsVlan -CompressionType "included" -DefaultNet "no" -Id 70 -McastPolicyName "" -Name $StorageVLANName    -PolicyOwner "local" -PubNwName "" -Sharing "none"
+Get-UcsLanCloud | Add-UcsVlan -CompressionType "included" -DefaultNet "no" -Id 80 -McastPolicyName "" -Name $vMLANName         -PolicyOwner "local" -PubNwName "" -Sharing "none"
+
+
 ############################################################################################################
 # Critical Note
 # Do not duplicate MAC addresses in your L2 space. The below MAC pools are provided only as an example
@@ -78,13 +127,13 @@ add-UcsOrg -Name $SiteName
 
 #Create MAC Address Pools (Management A)
 Start-UcsTransaction
-$mo = Get-UcsOrg -Name $SiteName | Add-UcsMacPool -AssignmentOrder "sequential" -Descr "$($mgmtMacPolName)-A" -Name "$($mgmtMacPolName)-A" -PolicyOwner "local"
+$mo = Get-UcsOrg -Name $SiteName | Add-UcsMacPool -AssignmentOrder "sequential" -Descr "$($mgmtMacPoolName)-A" -Name "$($mgmtMacPoolName)-A" -PolicyOwner "local"
 $mo_1 = $mo | Add-UcsMacMemberBlock -From "00:25:B5:1A:00:01" -To "00:25:B5:1A:00:40"
 Complete-UcsTransaction
 
 #Create MAC Address Pools (Management B)
 Start-UcsTransaction
-$mo = Get-UcsOrg -Name $SiteName | Add-UcsMacPool -AssignmentOrder "sequential" -Descr "$($mgmtMacPolName)-B" -Name "$($mgmtMacPolName)-B" -PolicyOwner "local"
+$mo = Get-UcsOrg -Name $SiteName | Add-UcsMacPool -AssignmentOrder "sequential" -Descr "$($mgmtMacPoolName)-B" -Name "$($mgmtMacPoolName)-B" -PolicyOwner "local"
 $mo_1 = $mo | Add-UcsMacMemberBlock -From "00:25:B5:1B:00:01" -To "00:25:B5:1B:00:40"
 Complete-UcsTransaction
 
@@ -104,13 +153,13 @@ Complete-UcsTransaction
 
 ############# Storage MAC Pools ################
 
-#Create MAC Address Pools (vMotion A)
+#Create MAC Address Pools (Storage A)
 Start-UcsTransaction
 $mo = Get-UcsOrg -Name $SiteName | Add-UcsMacPool -AssignmentOrder "sequential" -Descr "$($StorageMacPoolName)-A" -Name "$($StorageMacPoolName)-A" -PolicyOwner "local"
 $mo_1 = $mo | Add-UcsMacMemberBlock -From "00:25:B5:1A:02:01" -To "00:25:B5:1A:02:40"
 Complete-UcsTransaction
 
-#Create MAC Address Pools (vMotion B)
+#Create MAC Address Pools (Storage B)
 Start-UcsTransaction
 $mo = Get-UcsOrg -Name $SiteName | Add-UcsMacPool -AssignmentOrder "sequential" -Descr "$($StorageMacPoolName)-B" -Name "$($StorageMacPoolName)-B" -PolicyOwner "local"
 $mo_1 = $mo | Add-UcsMacMemberBlock -From "00:25:B5:1B:02:01" -To "00:25:B5:1B:02:40"
