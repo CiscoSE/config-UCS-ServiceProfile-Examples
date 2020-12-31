@@ -305,10 +305,10 @@ Complete-UcsTransaction
 ##########################################################################################################################################################################################
 
 #Create a service profile
-$mo = Get-UcsOrg -Name $SiteName | Get-UcsServiceProfile -Name $siteName -LimitScope | Add-UcsServiceProfileFromTemplate -NewName @("FED-ESX-C1-N1") -DestinationOrg $SiteName
-$mo_1 = Get-UcsOrg -Name $SiteName | Get-UcsServiceProfile -Name $siteName -LimitScope | Add-UcsServiceProfileFromTemplate -NewName @("FED-ESX-C1-N2") -DestinationOrg $SiteName
-$mo_2 = Get-UcsOrg -Name $SiteName | Get-UcsServiceProfile -Name $siteName -LimitScope | Add-UcsServiceProfileFromTemplate -NewName @("FED-ESX-C1-N3") -DestinationOrg $SiteName
-$mo_3 = Get-UcsOrg -Name $SiteName | Get-UcsServiceProfile -Name $siteName -LimitScope | Add-UcsServiceProfileFromTemplate -NewName @("FED-ESX-C1-N4") -DestinationOrg $SiteName
+$mo = Get-UcsOrg -Name $SiteName | Get-UcsServiceProfile -Name $siteName -LimitScope | Add-UcsServiceProfileFromTemplate -NewName @("SITE-ESX-C1-N1") -DestinationOrg $SiteName
+$mo_1 = Get-UcsOrg -Name $SiteName | Get-UcsServiceProfile -Name $siteName -LimitScope | Add-UcsServiceProfileFromTemplate -NewName @("SITE-ESX-C1-N2") -DestinationOrg $SiteName
+$mo_2 = Get-UcsOrg -Name $SiteName | Get-UcsServiceProfile -Name $siteName -LimitScope | Add-UcsServiceProfileFromTemplate -NewName @("SITE-ESX-C1-N3") -DestinationOrg $SiteName
+$mo_3 = Get-UcsOrg -Name $SiteName | Get-UcsServiceProfile -Name $siteName -LimitScope | Add-UcsServiceProfileFromTemplate -NewName @("SITE-ESX-C1-N4") -DestinationOrg $SiteName
 
 #Associate Servers
 $mo | Add-UcsLsBinding -ModifyPresent  -PnDn "sys/chassis-1/blade-3" -RestrictMigration "no"
