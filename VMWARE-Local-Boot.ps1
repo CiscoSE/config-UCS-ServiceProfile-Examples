@@ -33,7 +33,7 @@ $ucsNTP = "1.1.40.30"
 $ManagementVLANName = "ESXiMgmt-1000"
 $vMotionVLANName    = "vMotion-1001"
 $StorageVLANName    = "Storage-1002"
-$vMLANName          = "VMNetwork"
+$vmVLANName         = "VMNetwork"
 #$LegacyStorageVLANName = "LegStorage-1003"
 
 ############# MAC Address Pool Variables #############
@@ -115,7 +115,7 @@ $portChannelB | Add-UcsUplinkPortChannelMember -PortId 32 -SlotId 1
 Get-UcsLanCloud | Add-UcsVlan -CompressionType "included" -DefaultNet "no" -Id 50 -McastPolicyName "" -Name $ManagementVLANName -PolicyOwner "local" -PubNwName "" -Sharing "none"
 Get-UcsLanCloud | Add-UcsVlan -CompressionType "included" -DefaultNet "no" -Id 60 -McastPolicyName "" -Name $vMotionVLANName    -PolicyOwner "local" -PubNwName "" -Sharing "none"
 Get-UcsLanCloud | Add-UcsVlan -CompressionType "included" -DefaultNet "no" -Id 70 -McastPolicyName "" -Name $StorageVLANName    -PolicyOwner "local" -PubNwName "" -Sharing "none"
-Get-UcsLanCloud | Add-UcsVlan -CompressionType "included" -DefaultNet "no" -Id 80 -McastPolicyName "" -Name $vMLANName         -PolicyOwner "local" -PubNwName "" -Sharing "none"
+Get-UcsLanCloud | Add-UcsVlan -CompressionType "included" -DefaultNet "no" -Id 80 -McastPolicyName "" -Name $vmVLANName         -PolicyOwner "local" -PubNwName "" -Sharing "none"
 
 
 ############################################################################################################
@@ -227,7 +227,7 @@ Complete-UcsTransaction
 
 Start-UcsTransaction
 $mo = Get-UcsOrg -Name $SiteName  | Add-UcsVnicTemplate -Name $vicVMAName -PeerRedundancyTemplName $VicVMBName -RedundancyPairType primary -IdentPoolName "VM-A" -Mtu 1500 -PolicyOwner "local" -StatsPolicyName "default" -SwitchId "A" -TemplType 'updating-template'
-$mo_1 = $mo | Add-UcsVnicInterface -ModifyPresent -DefaultNet "no" -Name 'Server-VM-Data-Network'
+$mo_1 = $mo | Add-UcsVnicInterface -ModifyPresent -DefaultNet "no" -Name $vmVLANName 
 Complete-UcsTransaction
 
 Start-UcsTransaction
