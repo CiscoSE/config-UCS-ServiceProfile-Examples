@@ -288,7 +288,11 @@ $mo_9 = $mo | Add-UcsVnic -AdaptorProfileName "VMWare" -AdminVcon "1" -Name $vic
 #Create Boot Definition
 
 $mo_15 = $mo | Add-UcsBootDefinition -ModifyPresent -AdvBootOrderApplicable "no" -BootMode uefi -Descr "" -EnforceVnicName "yes" -PolicyOwner "local" -RebootOnUpdate "no"
-$mo_15_1 = $mo_15 | Add-UcslsbootStorage -Order 1 | Add-UcsLsbootLocalStorage | Add-UcsLsbootLocalHddImage -Order 1
+$mo_15_1 = $mo_15 | Add-UcslsbootStorage -Order 1 | 
+    Add-UcsLsbootLocalStorage | 
+        Add-UcsLsbootLocalHddImage -Order 1 |
+            Add-UcsLsbootUEFIBootParam -ModifyPresent -BootDescription "VMWare UEFI Boot" -BootLoaderName "BOOTX64.EFI" -BootLoaderPath "\EFI\BOOT\"
+
 #$mo_11 = $mo | Add-UcsFabricVCon -ModifyPresent -Fabric "NONE" -Id "1" -InstType "manual" -Placement "physical" -Select "all" -Share "shared" -Transport "ethernet","fc"
 #$mo_12 = $mo | Add-UcsFabricVCon -ModifyPresent -Fabric "NONE" -Id "2" -InstType "manual" -Placement "physical" -Select "all" -Share "shared" -Transport "ethernet","fc"
 #$mo_13 = $mo | Add-UcsFabricVCon -ModifyPresent -Fabric "NONE" -Id "3" -InstType "manual" -Placement "physical" -Select "all" -Share "shared" -Transport "ethernet","fc"
