@@ -268,6 +268,8 @@ Complete-UcsTransaction -force
 #Create Policy to set encryption on KVM connections
 Get-UcsOrg -Name $SiteName | Add-UcsComputeKvmMgmtPolicy -Descr "" -Name "Encrypted" -PolicyOwner "local" -VmediaEncryption "enable"
 
+#Local Disk Mirrored Policy
+Get-UcsOrg -Name $SiteName  | Add-UcsLocalDiskConfigPolicy -Descr "" -FlexFlashRAIDReportingState "disable" -FlexFlashState "disable" -Mode "raid-mirrored" -Name "Raid1Mirrored" -PolicyOwner "local" -ProtectConfig "yes"
 
 ##########################################################################################################################################################################################
 #   Service Profile
@@ -275,7 +277,7 @@ Get-UcsOrg -Name $SiteName | Add-UcsComputeKvmMgmtPolicy -Descr "" -Name "Encryp
 
 #Create Service Profile Template
 Start-UcsTransaction
-$mo = Get-UcsOrg -Name $SiteName -LimitScope | Add-UcsServiceProfile -BootPolicyName "" -HostFwPolicyName "default" -IdentPoolName $siteName -KvmMgmtPolicyName "Encrypted" -MaintPolicyName "UserAck" -BiosProfileName $SiteName -Name $SiteName -Type "updating-template"
+$mo = Get-UcsOrg -Name $SiteName -LimitScope | Add-UcsServiceProfile -BootPolicyName "" -LocalDiskPolicyName "raid-mirrored" -HostFwPolicyName "default" -IdentPoolName $siteName -KvmMgmtPolicyName "Encrypted" -MaintPolicyName "UserAck" -BiosProfileName $SiteName -Name $SiteName -Type "updating-template"
 $mo_2 = $mo | Add-UcsVnic -AdaptorProfileName "VMWare" -AdminVcon "1" -Name $vicMgmtAName     -NwTemplName $vicMgmtAName    -Order "1" -SwitchId "A"
 $mo_3 = $mo | Add-UcsVnic -AdaptorProfileName "VMWare" -AdminVcon "1" -Name $VicMgmtBName     -NwTemplName $VicMgmtBName    -Order "2" -SwitchId "B"
 $mo_4 = $mo | Add-UcsVnic -AdaptorProfileName "VMWare" -AdminVcon "1" -Name $vicVMotionAName  -NwTemplName $vicVMotionAName -Order "3" -SwitchId "A"
@@ -311,7 +313,7 @@ $mo_2 = Get-UcsOrg -Name $SiteName | Get-UcsServiceProfile -Name $siteName -Limi
 $mo_3 = Get-UcsOrg -Name $SiteName | Get-UcsServiceProfile -Name $siteName -LimitScope | Add-UcsServiceProfileFromTemplate -NewName @("SITE-ESX-C1-N4") -DestinationOrg $SiteName
 
 #Associate Servers
-$mo | Add-UcsLsBinding -ModifyPresent  -PnDn "sys/chassis-1/blade-3" -RestrictMigration "no"
+$mo | Add-UcsLsBinding -ModifyPresent  -PnDn "sys/chassis-1/blade-1" -RestrictMigration "no"
 $mo_1 | Add-UcsLsBinding -ModifyPresent  -PnDn "sys/chassis-3/blade-3" -RestrictMigration "no"
 $mo_2 | Add-UcsLsBinding -ModifyPresent  -PnDn "sys/chassis-3/blade-6" -RestrictMigration "no"
 $mo_3 | Add-UcsLsBinding -ModifyPresent  -PnDn "sys/chassis-3/blade-5" -RestrictMigration "no"
