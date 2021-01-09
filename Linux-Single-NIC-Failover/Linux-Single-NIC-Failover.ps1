@@ -37,7 +37,7 @@ connect-ucs $ucsMgmtIP
 
 #Create hash tables for any VLANs that you want to create and associate later with hosts / servers
 #We always want two variables in hashtables we create for vlans. Name and ID.
-[hashtable]$ManagementVLAN = @{Name="MGMT"; ID='3'}
+[hashtable]$ManagementVLAN = @{Name="1050"; ID='1050'}
 
 #The site name is used to seperate configurations in UCS. I prefer all systems in a site to be configured identically to avoid confusion.
 $SiteName = "Linux" 
@@ -85,11 +85,9 @@ Complete-UcsTransaction
 #   Create VNIC Templates
 ##########################################################################################################################################################################################
 
-
-
 ##################### Management Interface Templates #####################
 Start-UcsTransaction
-$mo = Get-UcsOrg -Name $SiteName  | Add-UcsVnicTemplate -Name $vicMgmtName -RedundancyPairType none -IdentPoolName "K8S-C1-Mgmt" -Mtu 1500 -PolicyOwner "local" -StatsPolicyName "default" -SwitchId "A-B" -TemplType 'updating-template'
+$mo = Get-UcsOrg -Name $SiteName  | Add-UcsVnicTemplate -Name $vicMgmtName -RedundancyPairType none -IdentPoolName $MgmtMacPool['Name'] -Mtu 1500 -PolicyOwner "local" -StatsPolicyName "default" -SwitchId "A-B" -TemplType 'updating-template'
 $mo_1 = $mo | Add-UcsVnicInterface -ModifyPresent -DefaultNet "yes" -Name $ManagementVLAN['Name']
 Complete-UcsTransaction
 
@@ -122,7 +120,7 @@ $mo_27 = $mo | Set-UcsBiosVfProcessorC6Report -VpProcessorC6Report disabled
 $mo_28 = $mo | Set-UcsBiosVfProcessorC7Report -VpProcessorC7Report disabled
 $mo_29 = $mo | Set-UcsBiosVfProcessorEnergyConfiguration -VpEnergyPerformance performance -VpPowerTechnology performance
 $mo_34 = $mo | Set-UcsBiosVfSelectMemoryRASConfiguration -VpSelectMemoryRASConfiguration maximum-performance
-Complete-UcsTransaction
+Complete-UcsTransaction -force
 
 #Create Policy to set encryption on KVM connections
 Get-UcsOrg -Name $SiteName | Add-UcsComputeKvmMgmtPolicy -Descr "" -Name "Encrypted" -PolicyOwner "local" -VmediaEncryption "enable"
@@ -133,13 +131,16 @@ $mo = Get-UcsOrg -Name $SiteName -LimitScope | Add-UcsVmediaPolicy -ModifyPresen
 $mo_1 = $mo | Add-UcsVmediaMountEntry -ModifyPresent -AuthOption "none" -DeviceType "cdd" -ImageFileName "ubuntu-20.04-live-server-amd64.iso" -ImageNameVariable "none" -ImagePath "/" -MappingName "Ubuntu" -MountProtocol "http" -Password "" -RemapOnEject "no" -RemoteIpAddress "172.16.12.10" -RemotePort 80 -XtraProperty @{Writable="no"; }
 Complete-UcsTransaction
 
+#Local Disk Mirrored Policy
+Get-UcsOrg -Name $SiteName  | Add-UcsLocalDiskConfigPolicy -Descr "" -FlexFlashRAIDReportingState "disable" -FlexFlashState "disable" -Mode "raid-mirrored" -Name "Raid1Mirrored" -PolicyOwner "local" -ProtectConfig "yes"
+
 ##########################################################################################################################################################################################
 #   Service Profile
 ##########################################################################################################################################################################################
 
 #Create Service Profile Template
 Start-UcsTransaction
-$mo = Get-UcsOrg -Name $SiteName -LimitScope | Add-UcsServiceProfile -BootPolicyName "" -HostFwPolicyName "default" -IdentPoolName $siteName -KvmMgmtPolicyName "Encrypted" -MaintPolicyName "UserAck" -BiosProfileName $SiteName -Name $SiteName -Type "updating-template" -VmediaPolicyName "Ubuntu20.04"
+$mo = Get-UcsOrg -Name $SiteName -LimitScope | Add-UcsServiceProfile -LocalDiskPolicyName 'Raid1Mirrored' -BootPolicyName '' -HostFwPolicyName "default" -IdentPoolName $siteName -KvmMgmtPolicyName "Encrypted" -MaintPolicyName "UserAck" -BiosProfileName $SiteName -Name $SiteName -Type "updating-template" -VmediaPolicyName "Ubuntu20.04"
 $mo_2 = $mo | Add-UcsVnic -AdaptorProfileName "VMWare" -AdminVcon "1" -Name $vicMgmtName     -NwTemplName $vicMgmtName    -Order "1"
 
 #Create Boot Definition
