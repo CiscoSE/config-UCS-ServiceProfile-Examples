@@ -292,6 +292,7 @@ $mo_26 = $mo | Set-UcsBiosVfProcessorC3Report -VpProcessorC3Report disabled
 $mo_27 = $mo | Set-UcsBiosVfProcessorC6Report -VpProcessorC6Report disabled
 $mo_28 = $mo | Set-UcsBiosVfProcessorC7Report -VpProcessorC7Report disabled
 $mo_29 = $mo | Set-UcsBiosVfProcessorEnergyConfiguration -VpEnergyPerformance performance -VpPowerTechnology performance
+$mo_30 = $mo | Set-UcsBiosVfIntelTrustedExecutionTechnology -VpIntelTrustedExecutionTechnologySupport enabled
 Complete-UcsTransaction -force
 
 #Create Policy to set encryption on KVM connections
@@ -299,15 +300,6 @@ Get-UcsOrg -Name $SiteName | Add-UcsComputeKvmMgmtPolicy -Descr "" -Name "Encryp
 
 #Local Disk Mirrored Policy
 Get-UcsOrg -Name $SiteName  | Add-UcsLocalDiskConfigPolicy -Descr "" -FlexFlashRAIDReportingState "disable" -FlexFlashState "disable" -Mode "raid-mirrored" -Name "Raid1-Mirrored" -PolicyOwner "local" -ProtectConfig "yes"
-
-# Boot Policy
-Start-UcsTransaction
-$mo = Get-UcsOrg -name $SiteName  | Add-UcsBootPolicy -ModifyPresent  -BootMode uefi -Descr "" -EnforceVnicName "no" -Name $SiteName -PolicyOwner "local" -RebootOnUpdate "no"
-$mo_2 = $mo | Add-UcsLsbootVirtualMedia -ModifyPresent -Access "read-only" -LunId "0" -MappingName "" -Order 2
-$mo_4 = $mo | Add-UcsLsbootStorage -ModifyPresent -Order 1
-$mo_4_1 = $mo_4 | Add-UcsLsbootLocalStorage -ModifyPresent
-$mo_4_1_1 = $mo_4_1 | Add-UcsLsbootDefaultLocalImage -ModifyPresent -Order 1
-Complete-UcsTransaction
 
 ##########################################################################################################################################################################################
 #   Service Profile
@@ -328,16 +320,12 @@ $mo_9 = $mo | Add-UcsVnic -AdaptorProfileName "VMWare" -AdminVcon "1" -Name $vic
 #Create Definition
 
 $mo_15 = $mo | Add-UcsBootDefinition -ModifyPresent -AdvBootOrderApplicable "no" -BootMode uefi -Descr "" -EnforceVnicName "yes" -PolicyOwner "local" -RebootOnUpdate "no"
-$mo_15_1 = $mo_15 | Add-UcslsbootStorage -Order 1 | 
+$mo_15_1 = $mo_15 | Add-UcsLsbootBootSecurity -SecureBoot "yes"
+$mo_15_2 = $mo_15 | Add-UcslsbootStorage -Order 1 | 
     Add-UcsLsbootLocalStorage | 
         Add-UcsLsbootLocalHddImage -Order 1 |
             Add-UcsLsbootUEFIBootParam -ModifyPresent -BootDescription "VMWare UEFI Boot" -BootLoaderName "BOOTX64.EFI" -BootLoaderPath "\EFI\BOOT\"
-$mo_15_2 = $mo_15 | Add-UcsLsbootVirtualMedia -ModifyPresent -Access "read-only" -LunId "0" -MappingName "" -Order 2
-
-#$mo_11 = $mo | Add-UcsFabricVCon -ModifyPresent -Fabric "NONE" -Id "1" -InstType "manual" -Placement "physical" -Select "all" -Share "shared" -Transport "ethernet","fc"
-#$mo_12 = $mo | Add-UcsFabricVCon -ModifyPresent -Fabric "NONE" -Id "2" -InstType "manual" -Placement "physical" -Select "all" -Share "shared" -Transport "ethernet","fc"
-#$mo_13 = $mo | Add-UcsFabricVCon -ModifyPresent -Fabric "NONE" -Id "3" -InstType "manual" -Placement "physical" -Select "all" -Share "shared" -Transport "ethernet","fc"
-#$mo_14 = $mo | Add-UcsFabricVCon -ModifyPresent -Fabric "NONE" -Id "4" -InstType "manual" -Placement "physical" -Select "all" -Share "shared" -Transport "ethernet","fc"
+$mo_15_3 = $mo_15 | Add-UcsLsbootVirtualMedia -ModifyPresent -Access "read-only" -LunId "0" -MappingName "" -Order 2
 $mo_16 = $mo | Set-UcsServerPower -State "admin-up"
 Complete-UcsTransaction -force
 
